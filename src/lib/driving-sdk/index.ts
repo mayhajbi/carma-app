@@ -37,7 +37,8 @@ export class CarmaDrivingSDK {
     );
 
     this.phoneManager = new PhoneUsageManager(
-      (event) => this.handleEvent(event)
+      (event) => this.handleEvent(event),
+      (totalSeconds) => this.handlePhoneSeconds(totalSeconds)
     );
 
     if (this.config.targetBluetoothId) {
@@ -80,7 +81,8 @@ export class CarmaDrivingSDK {
       durationSeconds: 0,
       events: [],
       averageSpeed: 0,
-      maxSpeed: 0
+      maxSpeed: 0,
+      phoneSeconds: 0,
     };
 
     await this.sensorManager.start();
@@ -136,6 +138,12 @@ export class CarmaDrivingSDK {
     if (this.onEventDetected) this.onEventDetected(event);
 
     // Immediate UI update for events
+    if (this.onUpdate) this.onUpdate({ ...this.currentTripData });
+  }
+
+  private handlePhoneSeconds(totalSeconds: number) {
+    if (!this.isTripActive || !this.currentTripData) return;
+    this.currentTripData.phoneSeconds = totalSeconds;
     if (this.onUpdate) this.onUpdate({ ...this.currentTripData });
   }
 

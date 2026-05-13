@@ -1,4 +1,4 @@
-import type { ScoringInput, ScoringResult } from '@/navigation/types'
+import type { ScoringInput, ScoringResult } from '@/types'
 
 export function getRiskMultiplier(startTime: Date): number {
   const hour = startTime.getHours()

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { AppState, AppStateStatus, InteractionManager } from 'react-native'
+import { InteractionManager } from 'react-native'
+import { calculateScore } from '@/lib/scoring'
 import type { AppUser, Language, ToastMessage, Trip } from '@/navigation/types'
 import { CarmaDrivingSDK, TripData, DrivingEventType } from '@/lib/driving-sdk'
 import { tripsApi } from '@/services/api/trips.api'
@@ -8,22 +9,26 @@ import { getLevelByPoints } from '@/lib/constants'
 
 export interface TripState {
   isActive: boolean;
+  startTime: Date | null;
   durationSeconds: number;
   distanceKm: number;
   currentSpeedKmH: number;
+  phoneSeconds: number;
   eventCounts: {
     HARD_BRAKE: number;
     AGGRESSIVE_ACCEL: number;
     SHARP_TURN: number;
-    PHONE_TOUCH: number;
+    PHONE_TOUCH: number; // UI display only — not used for scoring
   };
 }
 
 const INITIAL_TRIP_STATE: TripState = {
   isActive: false,
+  startTime: null,
   durationSeconds: 0,
   distanceKm: 0,
   currentSpeedKmH: 0,
+  phoneSeconds: 0,
   eventCounts: { HARD_BRAKE: 0, AGGRESSIVE_ACCEL: 0, SHARP_TURN: 0, PHONE_TOUCH: 0 },
 };
 
@@ -112,15 +117,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return finalState;
     }
 
-    const earnedPoints = Math.round(finalState.distanceKm * 15) + 50;
-    const score = Math.max(0, 100 - (finalState.eventCounts.HARD_BRAKE * 5) - (finalState.eventCounts.PHONE_TOUCH * 10));
+    const scoringResult = calculateScore({
+      hardBrakes: finalState.eventCounts.HARD_BRAKE,
+      aggressiveAccels: finalState.eventCounts.AGGRESSIVE_ACCEL,
+      sharpTurns: finalState.eventCounts.SHARP_TURN,
+      phoneSeconds: finalState.phoneSeconds,
+      durationSeconds: finalState.durationSeconds,
+      distanceKm: finalState.distanceKm,
+      startTime: finalState.startTime ?? new Date(),
+    });
+
+    const score = scoringResult.score;
+    const earnedPoints = Math.round(scoringResult.points);
+    const tripStartTime = finalState.startTime?.toISOString()
+      ?? new Date(Date.now() - finalState.durationSeconds * 1000).toISOString();
 
     try {
       // TODO: Future Sync - Ensure trip is sent to server along with identified city/country.
       await tripsApi.save({
         distance: finalState.distanceKm,
         avg_score: score,
-        start_time: new Date(Date.now() - finalState.durationSeconds * 1000).toISOString(),
+        start_time: tripStartTime,
         end_time: new Date().toISOString(),
         events_array: []
       });
@@ -131,7 +148,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newTrip: Trip = {
       id: `trip_${Date.now()}`,
       user_id: user?.id || 'guest',
-      start_time: new Date(Date.now() - finalState.durationSeconds * 1000).toISOString(),
+      start_time: tripStartTime,
       end_time: new Date().toISOString(),
       distance: finalState.distanceKm,
       avg_score: score,
@@ -162,7 +179,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.setItem('carma_user', JSON.stringify(updatedUser));
     }
 
-    setLastTripSummary({ ...finalState, id: newTrip.id, score, points: earnedPoints });
+    setLastTripSummary({
+      ...finalState,
+      id: newTrip.id,
+      score,
+      points: earnedPoints,
+      riskMultiplier: scoringResult.riskMultiplier,
+      penalties: scoringResult.penalties,
+    });
     setTripState(INITIAL_TRIP_STATE);
     return finalState;
   }, [user]);
@@ -174,11 +198,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isActive: true,
         durationSeconds: data.durationSeconds,
         distanceKm: data.distanceKm,
+        phoneSeconds: data.phoneSeconds,
         eventCounts: {
           HARD_BRAKE: data.events.filter(e => e.type === DrivingEventType.HARD_BRAKE).length,
           AGGRESSIVE_ACCEL: data.events.filter(e => e.type === DrivingEventType.AGGRESSIVE_ACCEL).length,
           SHARP_TURN: data.events.filter(e => e.type === DrivingEventType.SHARP_TURN).length,
-          PHONE_TOUCH: prev.eventCounts.PHONE_TOUCH,
+          PHONE_TOUCH: prev.eventCounts.PHONE_TOUCH, // UI display only, maintained by registerPhoneTouch
         }
       }));
     };
@@ -188,16 +213,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         processEndTrip();
       }
     };
-
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (tripRef.current.isActive && nextAppState !== 'active') {
-        registerPhoneTouch();
-      }
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription.remove();
-  }, [sdk, registerPhoneTouch, processEndTrip]);
+  }, [sdk, processEndTrip]);
 
   useEffect(() => {
     async function loadInitialData() {
@@ -229,8 +245,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const startTrip = useCallback(async () => {
     // TODO: GPS Logic - After first GPS sample, perform reverse geocoding to identify
     // current city/country, then update user state locally.
+    const now = new Date();
     await sdk.startTrip();
-    setTripState({ ...INITIAL_TRIP_STATE, isActive: true });
+    setTripState({ ...INITIAL_TRIP_STATE, isActive: true, startTime: now });
   }, [sdk]);
 
   const endTrip = useCallback(async () => {

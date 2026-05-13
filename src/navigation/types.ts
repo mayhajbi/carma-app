@@ -27,6 +27,8 @@ export interface AppUser {
   role: UserRole
   businessId?: string // מזהה העסק עבור משתמש מסוג business
   points: number
+  totalPoints?: number    // cumulative all-time points (equals points until redemption is built)
+  totalDistance?: number  // cumulative km driven
   level: number
   license_img_url?: string
   language: 'he' | 'en'

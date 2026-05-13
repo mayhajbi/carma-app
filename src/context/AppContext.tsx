@@ -165,13 +165,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem('carma_trips', JSON.stringify(updatedTrips));
 
     if (user) {
-      const newTotalPoints = (user.totalPoints || 0) + earnedPoints;
+      // Single source of truth: prefer totalPoints (persisted accumulator), fall back to points
+      const currentPoints = user.totalPoints ?? user.points ?? 0;
+      const newTotalPoints = currentPoints + earnedPoints;
       const newLevel = getLevelByPoints(newTotalPoints);
 
       const updatedUser = {
         ...user,
-        points: (user.points || 0) + earnedPoints,
-        totalPoints: newTotalPoints,
+        points: newTotalPoints,       // spec field (5.3.1.1) + Marketplace reads this
+        totalPoints: newTotalPoints,  // Dashboard/Profile UI reads this
         totalDistance: (user.totalDistance || 0) + finalState.distanceKm,
         level: newLevel
       };

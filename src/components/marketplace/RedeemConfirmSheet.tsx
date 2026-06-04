@@ -29,7 +29,7 @@ export const RedeemConfirmSheet: React.FC<RedeemConfirmSheetProps> = ({
 
         <TouchableOpacity style={styles.confirmBtn} onPress={onConfirm} disabled={loading}>
           <Text style={styles.confirmBtnText}>
-            {loading ? '...' : t('marketplace.redeem')}
+            {t('common.confirm')}
           </Text>
         </TouchableOpacity>
       </View>

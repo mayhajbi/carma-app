@@ -25,7 +25,7 @@ export class ApiError extends Error {
   }
 }
 
-const REAL_SERVER_URL = 'https://carma-api.example.com'; // TODO: עדכן לכתובת השרת של נווה
+const REAL_SERVER_URL = 'https://carma-app.onrender.com';
 const BASE_URL = USE_REAL_SERVER ? REAL_SERVER_URL : LOCAL_SERVER_URL;
 
 async function getAuthToken(): Promise<string | null> {

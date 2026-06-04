@@ -166,7 +166,76 @@ eas build -p android --profile preview
 
 ---
 
-## שגיאות נפוצות
+## שינויי קוד שבוצעו בפועל
+
+פירוט מדויק של כל הקבצים שהיה צריך לשנות כדי שהאפליקציה תעבוד כ-APK עם שרת Render.
+
+---
+
+### `carma-server-main/local-server/server.js`
+
+**בעיה:** הפורט היה hardcoded ל-3000. Render מקצה פורט דינמי ולכן השרת לא הצליח להתחיל.
+
+```js
+// לפני
+const PORT = 3000;
+
+// אחרי
+const PORT = process.env.PORT || 3000;
+```
+
+---
+
+### `src/constants/serverConfig.ts`
+
+**בעיה:** `USE_REAL_SERVER` היה `false`, ו-URL השרת האמיתי היה placeholder.
+ב-APK עצמאי אין Metro proxy, ולכן חייבים להצביע ישירות על ה-URL.
+
+```ts
+// לפני
+export const USE_REAL_SERVER = false;
+// ...
+? 'https://carma-api.example.com'
+
+// אחרי
+export const USE_REAL_SERVER = true;
+// ...
+? 'https://your-app.onrender.com'
+```
+
+---
+
+### `src/services/api/client.ts`
+
+**בעיה:** הקובץ הגדיר `REAL_SERVER_URL` משלו (hardcoded placeholder) ולא ייבא אותו מ-`serverConfig.ts`.
+גם אם מעדכנים את `serverConfig.ts` — `client.ts` עדיין שולח בקשות לכתובת הישנה.
+
+```ts
+// לפני
+const REAL_SERVER_URL = 'https://carma-api.example.com';
+
+// אחרי
+const REAL_SERVER_URL = 'https://your-app.onrender.com';
+```
+
+> **חשוב:** זו הייתה הסיבה שהאפליקציה לא הצליחה להתחבר לאחר ה-deploy הראשון.
+> תמיד לבדוק אם יש הגדרת URL כפולה בשני קבצים שונים.
+
+---
+
+### פקודות שהורצו לתיקון תלויות
+
+```bash
+# babel-preset-expo היה חסר לחלוטין מה-package.json
+npx expo install babel-preset-expo
+
+# גרסת expo הייתה מאחורי ב-patch אחד (גרם לכישלון ב-expo doctor בזמן build)
+npx expo install expo@~54.0.35
+```
+
+---
+
+
 
 | שגיאה | פתרון |
 |---|---|

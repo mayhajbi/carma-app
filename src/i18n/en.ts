@@ -29,7 +29,7 @@ const en = {
   trip: {
     active: 'Active Trip', start: 'Start Trip', end: 'End Trip',
     duration: 'Duration', distance: 'Distance', score: 'Score', events: 'Events',
-    hardBrakes: 'Hard Brakes', aggressiveAccels: 'Aggressive Accels',
+    hardBrakes: 'Hard Brakes', aggressiveAccels: 'Accelerations',
     sharpTurns: 'Sharp Turns', phoneTouches: 'Phone Touches',
     status: { excellent: 'Excellent!', good: 'Good', fair: 'Fair', poor: 'Improve' },
     trafficLight: { green: 'Great driving!', yellow: 'Pay attention', red: 'Dangerous driving' },

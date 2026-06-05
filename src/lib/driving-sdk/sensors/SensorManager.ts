@@ -39,6 +39,8 @@ export class SensorManager {
   private latestAccelX = 0; // gravity-removed lateral component (g-units)
   private latestGyroZ  = 0; // yaw rate (rad/s)
 
+  private startTime: number = 0;
+
   private onEvent: (event: DrivingEvent) => void;
   private onUpdate: (data: { distanceKm: number; currentSpeed: number; accelX: number; gyroZ: number }) => void;
 
@@ -53,6 +55,7 @@ export class SensorManager {
   public async start() {
     if (this.isRunning) return;
     this.isRunning = true;
+    this.startTime = Date.now();
     this.gravity = { x: 0, y: 0, z: 1 };
     this.latestAccelX = 0;
     this.latestGyroZ  = 0;
@@ -130,6 +133,7 @@ export class SensorManager {
     // Always track latest lateral component for fraud detection (regardless of event threshold)
     this.latestAccelX = dx;
 
+    if (Date.now() - this.startTime < 2000) return;
     if (dynamicMag < DYNAMIC_ACCEL_THRESHOLD) return;
 
     // Discriminate brake vs accelerate by the sign of the dominant dynamic axis.

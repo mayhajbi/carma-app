@@ -32,7 +32,7 @@ const he = {
     endTripConfirm: 'סיום נסיעה', endTripMessage: 'האם אתה בטוח שברצונך לסיים את הנסיעה הנוכחית?',
     eventsDetected: 'אירועים שזוהו', safetyTip: 'נהיגה רגועה ללא בלימות פתע מעלה את הציון שלך!',
     duration: 'משך', distance: 'מרחק', score: 'ציון', events: 'אירועים',
-    hardBrakes: 'בלימות חדות', aggressiveAccels: 'האצות חדות',
+    hardBrakes: 'בלימות חדות', aggressiveAccels: 'האצות',
     sharpTurns: 'פניות חדות', phoneTouches: 'נגיעות בטלפון',
     status: { excellent: 'מצוין!', good: 'טוב', fair: 'בסדר', poor: 'שפר' },
     trafficLight: { green: 'נסיעה מצוינת!', yellow: 'שים לב', red: 'נהיגה מסוכנת' },

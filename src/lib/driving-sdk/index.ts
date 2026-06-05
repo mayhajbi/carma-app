@@ -137,7 +137,9 @@ export class CarmaDrivingSDK {
 
     this.timer = setInterval(() => {
       if (this.currentTripData) {
-        this.currentTripData.durationSeconds += 1;
+        this.currentTripData.durationSeconds = Math.floor(
+          (Date.now() - this.currentTripData.startTime.getTime()) / 1000
+        );
         if (this.onUpdate) this.onUpdate({ ...this.currentTripData });
       }
     }, 1000);
@@ -153,6 +155,9 @@ export class CarmaDrivingSDK {
     if (this.timer) clearInterval(this.timer);
 
     this.currentTripData.endTime = new Date();
+    this.currentTripData.durationSeconds = Math.floor(
+      (this.currentTripData.endTime.getTime() - this.currentTripData.startTime.getTime()) / 1000
+    );
     this.sensorManager.stop();
     this.phoneManager.stop();
 
